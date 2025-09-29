@@ -1,0 +1,4 @@
+{
+    "command": "npm run test",
+    "working_directory": "/home/kavia/workspace/code-generation/unified-data-explorer-145037-145046/backend_express_api"
+}
