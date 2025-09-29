@@ -17,11 +17,11 @@ app.use(cors({
 app.set('trust proxy', true);
 app.use('/docs', swaggerUi.serve, (req, res, next) => {
   const host = req.get('host');           // may or may not include port
-  let protocol = req.protocol;          // http or https
+  let protocol = req.protocol;            // http or https
 
   const actualPort = req.socket.localPort;
   const hasPort = host.includes(':');
-  
+
   const needsPort =
     !hasPort &&
     ((protocol === 'http' && actualPort !== 80) ||
@@ -38,6 +38,33 @@ app.use('/docs', swaggerUi.serve, (req, res, next) => {
     ],
   };
   swaggerUi.setup(dynamicSpec)(req, res, next);
+});
+
+// PUBLIC_INTERFACE
+/**
+ * Serve OpenAPI spec with a dynamic 'servers' entry that reflects the current request origin.
+ * This allows clients to discover the API base URL programmatically.
+ */
+app.get('/openapi.json', (req, res) => {
+  const host = req.get('host');
+  let protocol = req.protocol;
+  const actualPort = req.socket.localPort;
+  const hasPort = host.includes(':');
+
+  const needsPort =
+    !hasPort &&
+    ((protocol === 'http' && actualPort !== 80) ||
+     (protocol === 'https' && actualPort !== 443));
+  const fullHost = needsPort ? `${host}:${actualPort}` : host;
+  protocol = req.secure ? 'https' : protocol;
+
+  const dynamicSpec = {
+    ...swaggerSpec,
+    servers: [
+      { url: `${protocol}://${fullHost}` },
+    ],
+  };
+  res.json(dynamicSpec);
 });
 
 // Parse JSON request body
