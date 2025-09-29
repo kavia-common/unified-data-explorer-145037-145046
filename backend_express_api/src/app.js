@@ -44,10 +44,17 @@ app.use('/docs', swaggerUi.serve, (req, res, next) => {
 app.use(express.json());
 
 // Mongo connection on startup (non-blocking middleware initializer)
-connectDB().catch((err) => {
-  // eslint-disable-next-line no-console
-  console.error('Failed to connect to MongoDB at startup:', err.message);
-});
+// eslint-disable-next-line no-console
+console.log('Attempting to connect to MongoDB...');
+connectDB()
+  .then(() => {
+    // eslint-disable-next-line no-console
+    console.log('MongoDB connection attempt initiated.');
+  })
+  .catch((err) => {
+    // eslint-disable-next-line no-console
+    console.error('Failed to connect to MongoDB at startup:', err.message);
+  });
 
 // Mount routes
 app.use('/', routes);
@@ -55,6 +62,7 @@ app.use('/api', apiRouter);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
+  // eslint-disable-next-line no-console
   console.error(err.stack);
   res.status(500).json({
     status: 'error',
