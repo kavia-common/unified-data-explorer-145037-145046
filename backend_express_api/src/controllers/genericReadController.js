@@ -21,12 +21,23 @@ class GenericReadController {
    * - ?skip (default 0)
    * - ?sort (e.g., '-createdAt' or 'createdAt')
    * - ?q (JSON string query to pass to Mongo find)
+   *
+   * Compatibility notes:
+   * - Response includes aliases "data" and "results" in addition to "items" to
+   *   support various frontend parsers without changes.
+   * - Default sort prefers "-created_at" if the schema contains "created_at",
+   *   otherwise falls back to "-createdAt".
    */
   async list(req, res, next) {
     try {
       const limit = Math.min(parseInt(req.query.limit || '50', 10), 200);
       const skip = parseInt(req.query.skip || '0', 10);
-      const sort = req.query.sort || '-createdAt';
+
+      // Prefer created_at (snake_case) if present, else createdAt
+      const hasCreatedAtSnake = !!this.model.schema.path('created_at');
+      const defaultSortField = hasCreatedAtSnake ? '-created_at' : '-createdAt';
+      const sort = req.query.sort || defaultSortField;
+
       let query = {};
       if (req.query.q) {
         try {
@@ -41,12 +52,22 @@ class GenericReadController {
         this.model.countDocuments(query),
       ]);
 
-      return res.json({
+      const payload = {
         resource: this.resourceName,
         total,
         count: items.length,
         items,
-      });
+        // Aliases for compatibility with various frontends
+        data: items,
+        results: items,
+        // Pagination metadata
+        limit,
+        skip,
+        sortApplied: sort,
+        hasMore: skip + items.length < total,
+      };
+
+      return res.json(payload);
     } catch (err) {
       return next(err);
     }
