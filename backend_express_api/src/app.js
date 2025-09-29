@@ -3,6 +3,8 @@ const express = require('express');
 const routes = require('./routes');
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('../swagger');
+const { connectDB } = require('./config/db');
+const apiRouter = require('./routes/api');
 
 // Initialize express app
 const app = express();
@@ -41,8 +43,15 @@ app.use('/docs', swaggerUi.serve, (req, res, next) => {
 // Parse JSON request body
 app.use(express.json());
 
+// Mongo connection on startup (non-blocking middleware initializer)
+connectDB().catch((err) => {
+  // eslint-disable-next-line no-console
+  console.error('Failed to connect to MongoDB at startup:', err.message);
+});
+
 // Mount routes
 app.use('/', routes);
+app.use('/api', apiRouter);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
